@@ -36,6 +36,27 @@
 #include <samba_util.h>
 #include <util/debug.h>
 
+/* FIXME: unhardcorde, define when compiling with debug and/or benchmark enabled */
+#define __BENCHMARK__
+#include <sys/time.h>
+
+#ifdef __BENCHMARK__
+#define RETURN_BACKEND_OP(_op_) \
+do { \
+    enum mapistore_error ret; \
+    struct timeval t1, t2; \
+    gettimeofday(&t1, NULL); \
+    ret = bctx->backend->_op_; \
+    gettimeofday(&t2, NULL); \
+    /* FIXME: log to file */ \
+    printf("Operation %s took %g ms\n", #_op_, (double)((t2.tv_sec + t2.tv_usec*1e-6) - (t1.tv_sec + t1.tv_usec*1e-6))*1000); \
+    /* TODO: get also user/system times using times() or getrusage() ? */ \
+    return ret; \
+} while (0)
+#else
+#define RETURN_BACKEND_OP(_op_) return _op_;
+#endif
+
 /**
    \file mapistore_backend.c
 
@@ -582,49 +603,49 @@ enum mapistore_error mapistore_backend_get_path(TALLOC_CTX *mem_ctx, struct back
 
 enum mapistore_error mapistore_backend_folder_open_folder(struct backend_context *bctx, void *folder, TALLOC_CTX *mem_ctx, uint64_t fid, void **child_folder)
 {
-	return bctx->backend->folder.open_folder(mem_ctx, folder, fid, child_folder);
+	RETURN_BACKEND_OP(folder.open_folder(mem_ctx, folder, fid, child_folder));
 }
 
 enum mapistore_error mapistore_backend_folder_create_folder(struct backend_context *bctx, void *folder,
 					   TALLOC_CTX *mem_ctx, uint64_t fid, struct SRow *aRow, void **child_folder)
 {
-	return bctx->backend->folder.create_folder(mem_ctx, folder, fid, aRow, child_folder);
+	RETURN_BACKEND_OP(folder.create_folder(mem_ctx, folder, fid, aRow, child_folder));
 }
 
 enum mapistore_error mapistore_backend_folder_delete(struct backend_context *bctx, void *folder)
 {
-	return bctx->backend->folder.delete(folder);
+	RETURN_BACKEND_OP(folder.delete(folder));
 }
 
 enum mapistore_error mapistore_backend_folder_open_message(struct backend_context *bctx, void *folder,
 					  TALLOC_CTX *mem_ctx, uint64_t mid, bool read_write, void **messagep)
 {
-	return bctx->backend->folder.open_message(mem_ctx, folder, mid, read_write, messagep);
+	RETURN_BACKEND_OP(folder.open_message(mem_ctx, folder, mid, read_write, messagep));
 }
 
 enum mapistore_error mapistore_backend_folder_create_message(struct backend_context *bctx, void *folder, TALLOC_CTX *mem_ctx, uint64_t mid, uint8_t associated, void **messagep)
 {
-	return bctx->backend->folder.create_message(mem_ctx, folder, mid, associated, messagep);
+	RETURN_BACKEND_OP(folder.create_message(mem_ctx, folder, mid, associated, messagep));
 }
 
 enum mapistore_error mapistore_backend_folder_delete_message(struct backend_context *bctx, void *folder, uint64_t mid, uint8_t flags)
 {
-        return bctx->backend->folder.delete_message(folder, mid, flags);
+        RETURN_BACKEND_OP(folder.delete_message(folder, mid, flags));
 }
 
 enum mapistore_error mapistore_backend_folder_move_copy_messages(struct backend_context *bctx, void *target_folder, void *source_folder, TALLOC_CTX *mem_ctx, uint32_t mid_count, uint64_t *source_mids, uint64_t *target_mids, struct Binary_r **target_change_keys, uint8_t want_copy)
 {
-	return bctx->backend->folder.move_copy_messages(target_folder, source_folder, mem_ctx, mid_count, source_mids, target_mids, target_change_keys, want_copy);
+        RETURN_BACKEND_OP(folder.move_copy_messages(target_folder, source_folder, mem_ctx, mid_count, source_mids, target_mids, target_change_keys, want_copy));
 }
 
 enum mapistore_error mapistore_backend_folder_move_folder(struct backend_context *bctx, void *move_folder, void *target_folder, TALLOC_CTX *mem_ctx, const char *new_folder_name)
 {
-        return bctx->backend->folder.move_folder(move_folder, target_folder, mem_ctx, new_folder_name);
+        RETURN_BACKEND_OP(folder.move_folder(move_folder, target_folder, mem_ctx, new_folder_name));
 }
 
 enum mapistore_error mapistore_backend_folder_copy_folder(struct backend_context *bctx, void *move_folder, void *target_folder, TALLOC_CTX *mem_ctx, bool recursive, const char *new_folder_name)
 {
-        return bctx->backend->folder.copy_folder(move_folder, target_folder, mem_ctx, recursive, new_folder_name);
+        RETURN_BACKEND_OP(folder.copy_folder(move_folder, target_folder, mem_ctx, recursive, new_folder_name);
 }
 
 enum mapistore_error mapistore_backend_folder_get_deleted_fmids(struct backend_context *bctx, void *folder, TALLOC_CTX *mem_ctx, enum mapistore_table_type table_type, uint64_t change_num, struct UI8Array_r **fmidsp, uint64_t *cnp)
