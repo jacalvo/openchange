@@ -13,12 +13,12 @@
    it under the terms of the GNU General Public License as published by
    the Free Software Foundation; either version 3 of the License, or
    (at your option) any later version.
-   
+
    This program is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
    GNU General Public License for more details.
-   
+
    You should have received a copy of the GNU General Public License
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -54,7 +54,7 @@ do { \
     return ret; \
 } while (0)
 #else
-#define RETURN_BACKEND_OP(_op_) return _op_;
+#define RETURN_BACKEND_OP(_op_) return bctx->backend->_op_;
 #endif
 
 /**
@@ -87,7 +87,7 @@ _PUBLIC_ enum mapistore_error mapistore_backend_register(const void *_backend)
 	MAPISTORE_RETVAL_IF(!backend, MAPISTORE_ERR_INVALID_PARAMETER, NULL);
 
 	for (i = 0; i < num_backends; i++) {
-		if (backends[i].backend && backend && 
+		if (backends[i].backend && backend &&
 		    backend->backend.name && backends[i].backend->backend.name &&
 		    !strcmp(backends[i].backend->backend.name, backend->backend.name)) {
 			DEBUG(3, ("MAPISTORE backend '%s' already registered\n", backend->backend.name));
@@ -212,7 +212,7 @@ static init_backend_fn *load_backends(TALLOC_CTX *mem_ctx, const char *path)
 		if (ISDOT(entry->d_name) || ISDOTDOT(entry->d_name)) {
 			continue;
 		}
-		
+
 		filename = talloc_asprintf(mem_ctx, "%s/%s", path, entry->d_name);
 		ret[success] = load_backend(filename);
 		if (ret[success]) {
@@ -407,7 +407,7 @@ enum mapistore_error mapistore_backend_create_context(TALLOC_CTX *mem_ctx,
 	MAPISTORE_RETVAL_IF(!context, MAPISTORE_ERR_NO_MEMORY, NULL);
 
 	for (i = 0; i < num_backends; i++) {
-		if (backends[i].backend->backend.namespace && 
+		if (backends[i].backend->backend.namespace &&
 		    !strcmp(namespace, backends[i].backend->backend.namespace)) {
 			found = true;
 			retval = backends[i].backend->backend.create_context(context, backends[i].backend->backend.name, conn_info, ictx, uri, &backend_object);
@@ -484,7 +484,7 @@ _PUBLIC_ enum mapistore_error mapistore_backend_delete_context(struct backend_co
 	}
 
 	talloc_free(bctx);
-	
+
 	return MAPISTORE_SUCCESS;
 }
 
@@ -546,7 +546,7 @@ _PUBLIC_ struct backend_context *mapistore_backend_lookup_by_uri(struct backend_
 			}
 		}
 	}
-	
+
 	return rec;
 }
 
@@ -645,7 +645,7 @@ enum mapistore_error mapistore_backend_folder_move_folder(struct backend_context
 
 enum mapistore_error mapistore_backend_folder_copy_folder(struct backend_context *bctx, void *move_folder, void *target_folder, TALLOC_CTX *mem_ctx, bool recursive, const char *new_folder_name)
 {
-        RETURN_BACKEND_OP(folder.copy_folder(move_folder, target_folder, mem_ctx, recursive, new_folder_name);
+        RETURN_BACKEND_OP(folder.copy_folder(move_folder, target_folder, mem_ctx, recursive, new_folder_name));
 }
 
 enum mapistore_error mapistore_backend_folder_get_deleted_fmids(struct backend_context *bctx, void *folder, TALLOC_CTX *mem_ctx, enum mapistore_table_type table_type, uint64_t change_num, struct UI8Array_r **fmidsp, uint64_t *cnp)
@@ -670,7 +670,7 @@ enum mapistore_error mapistore_backend_folder_get_child_fid_by_name(struct backe
 	uint32_t			row_count;
 
 	mem_ctx = talloc_zero(NULL, TALLOC_CTX);
-	
+
 	if (mapistore_backend_folder_open_table(bctx, folder, mem_ctx, MAPISTORE_FOLDER_TABLE, 0, &table, &row_count)) {
 		talloc_free(mem_ctx);
 		return MAPISTORE_ERROR;
@@ -841,8 +841,8 @@ enum mapistore_error mapistore_backend_properties_set_properties(struct backend_
         return bctx->backend->properties.set_properties(object, aRow);
 }
 
-enum mapistore_error mapistore_backend_manager_generate_uri(struct backend_context *bctx, TALLOC_CTX *mem_ctx, 
-					   const char *username, const char *folder, 
+enum mapistore_error mapistore_backend_manager_generate_uri(struct backend_context *bctx, TALLOC_CTX *mem_ctx,
+					   const char *username, const char *folder,
 					   const char *message, const char *root_uri, char **uri)
 {
 	return bctx->backend->manager.generate_uri(mem_ctx, username, folder, message, root_uri, uri);
