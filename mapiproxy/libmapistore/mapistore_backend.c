@@ -48,8 +48,7 @@ do { \
     gettimeofday(&t1, NULL); \
     ret = bctx->backend->_op_; \
     gettimeofday(&t2, NULL); \
-    /* FIXME: log to file */ \
-    printf("Operation %s took %g ms\n", #_op_, (double)((t2.tv_sec + t2.tv_usec*1e-6) - (t1.tv_sec + t1.tv_usec*1e-6))*1000); \
+    DEBUG(0, ("Operation %s took %g ms\n", #_op_, (double)((t2.tv_sec + t2.tv_usec*1e-6) - (t1.tv_sec + t1.tv_usec*1e-6))*1000)); \
     /* TODO: get also user/system times using times() or getrusage() ? */ \
     return ret; \
 } while (0)
