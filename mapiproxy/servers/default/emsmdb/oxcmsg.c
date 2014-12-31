@@ -766,13 +766,14 @@ static enum MAPISTATUS oxcmsg_resolve_partial_x500name(TALLOC_CTX *mem_ctx,
 
 static enum MAPISTATUS oxcmsg_parse_ModifyRecipientRow(TALLOC_CTX *mem_ctx, struct emsmdbp_context *emsmdbp_ctx,
 						       struct ModifyRecipientRow *recipient_row,
-						       uint16_t prop_count, enum MAPITAGS *properties,
+						       uint16_t modify_recipients_prop_count, enum MAPITAGS *properties,
 						       struct mapistore_message_recipient *recipient)
 {
 	int			i;
 	uint32_t		data_pos;
 	const void		*prop_value;
 	enum MAPISTATUS		retval;
+	const uint16_t          prop_count = recipient_row->RecipientRow.prop_count;
 
 	recipient->type = recipient_row->RecipClass;
 
@@ -785,7 +786,7 @@ static enum MAPISTATUS oxcmsg_parse_ModifyRecipientRow(TALLOC_CTX *mem_ctx, stru
 		OPENCHANGE_RETVAL_IF(retval != MAPI_E_SUCCESS, retval, NULL);
 	}
 
-	recipient->data = talloc_array(mem_ctx, void *, prop_count + 2);
+	recipient->data = talloc_array(mem_ctx, void *, modify_recipients_prop_count + 2);
 
 	/* PR_DISPLAY_NAME_UNICODE */
 	switch ((recipient_row->RecipientRow.RecipientFlags & 0x210)) {
@@ -835,6 +836,12 @@ static enum MAPISTATUS oxcmsg_parse_ModifyRecipientRow(TALLOC_CTX *mem_ctx, stru
 			return MAPI_E_TYPE_NO_SUPPORT;
 		}
 		recipient->data[i+2] = discard_const(prop_value);
+	}
+	/* There are cases where the number of properties set by recipient row
+	   is lower than the general modify recipients ROP, setting NULL to be
+	   consistent in mapistore layer and more simple */
+	for (i = 0; i < modify_recipients_prop_count - prop_count; i++) {
+		recipient->data[i+2+prop_count] = NULL;
 	}
 
 	return MAPI_E_SUCCESS;
@@ -1896,10 +1903,14 @@ _PUBLIC_ enum MAPISTATUS EcDoRpc_RopGetValidAttachments(TALLOC_CTX *mem_ctx,
 
 	retval = mapi_handles_get_private_data(rec, &data);
 	message_object = (struct emsmdbp_object *)data;
-	if (!message_object || message_object->type != EMSMDBP_OBJECT_MESSAGE) {
-		mapi_repl->error_code = MAPI_E_INVALID_OBJECT;
-		/* TODO: Figure out data type */
-		DEBUG(0, ("[ERROR][%s]: data object is %d instead of EMSMDBP_OBJECT_MESSAGE", __location__, message_object->type));
+	if (!message_object) {
+                DEBUG(0, ("[ERROR][%s]: data object is NULL", __location__));
+                mapi_repl->error_code = MAPI_E_INVALID_OBJECT;
+                goto end;
+        }
+        if (message_object->type != EMSMDBP_OBJECT_MESSAGE) {
+                DEBUG(0, ("[ERROR][%s]: data object is %d instead of EMSMDBP_OBJECT_MESSAGE", __location__, message_object->type));
+		mapi_repl->error_code = MAPI_E_INVALID_TYPE;
 		goto end;
 	}
 
@@ -1908,7 +1919,7 @@ _PUBLIC_ enum MAPISTATUS EcDoRpc_RopGetValidAttachments(TALLOC_CTX *mem_ctx,
 	        contextID = emsmdbp_get_contextID(message_object);
 	        ret = mapistore_message_get_attachment_ids(emsmdbp_ctx->mstore_ctx, contextID, message_object->backend_object, mem_ctx, &attach_ids, &count);
 	        if (ret != MAPISTORE_SUCCESS) {
-			DEBUG(5, ("Error saving the attachment\n"));
+			DEBUG(0, ("Error saving the attachment\n"));
 			mapi_repl->error_code = mapistore_error_to_mapi(ret);
 			goto end;
 	        }

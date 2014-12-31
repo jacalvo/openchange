@@ -226,6 +226,7 @@ _PUBLIC_ enum mapistore_error mapistore_add_context(struct mapistore_context *ms
 
 		retval = mapistore_backend_create_context(mstore_ctx, mstore_ctx->conn_info, ictx, namespace_start, backend_uri, fid, &backend_ctx);
 		if (retval != MAPISTORE_SUCCESS) {
+			talloc_free(mem_ctx);
 			return retval;
 		}
 
@@ -478,6 +479,9 @@ _PUBLIC_ enum mapistore_error mapistore_list_backends_for_user(TALLOC_CTX *mem_c
 _PUBLIC_ enum mapistore_error mapistore_list_contexts_for_user(struct mapistore_context *mstore_ctx, const char *owner, TALLOC_CTX *mem_ctx, struct mapistore_contexts_list **contexts_listp)
 {
 	struct indexing_context		*ictx;
+
+	/* Sanity checks */
+	MAPISTORE_RETVAL_IF(!owner, MAPISTORE_ERR_INVALID_PARAMETER, NULL);
 
 	mapistore_indexing_add(mstore_ctx, owner, &ictx);
 	/* TODO change backend definition to accept indexing_context instead of tdb_wrap */

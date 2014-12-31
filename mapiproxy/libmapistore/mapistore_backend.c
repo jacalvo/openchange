@@ -597,6 +597,8 @@ enum mapistore_error mapistore_backend_get_path(TALLOC_CTX *mem_ctx, struct back
 		*path = NULL;
 	}
 
+	talloc_free(bpath);
+
 	return ret;
 }
 
